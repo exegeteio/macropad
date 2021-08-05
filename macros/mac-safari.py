@@ -1,10 +1,10 @@
 # MACROPAD Hotkeys example: Safari web browser for Mac
 
-from adafruit_hid.keycode import Keycode # REQUIRED if using Keycode.* values
+from adafruit_hid.keycode import Keycode  # REQUIRED if using Keycode.* values
 
 app = {                    # REQUIRED dict, must be named 'app'
-    'name' : 'Mac Safari', # Application name
-    'macros' : [           # List of button macros...
+    'name': 'Mac Safari',  # Application name
+    'macros': [           # List of button macros...
         # COLOR    LABEL    KEY SEQUENCE
         # 1st row ----------
         (0x004000, '< Back', [Keycode.COMMAND, '[']),
@@ -24,8 +24,6 @@ app = {                    # REQUIRED dict, must be named 'app'
         (0x800000, 'Digi', [Keycode.COMMAND, 'n', -Keycode.COMMAND,
                             'www.digikey.com\n']),   # Digi-Key in new window
         (0x101010, 'Hacks', [Keycode.COMMAND, 'n', -Keycode.COMMAND,
-                             'www.hackaday.com\n']), # Hack-a-Day in new win
-        # Encoder button ---
-        (0x000000, '', [Keycode.COMMAND, 'w']) # Close window/tab
+                             'www.hackaday.com\n']),  # Hack-a-Day in new win
     ]
 }

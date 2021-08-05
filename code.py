@@ -11,9 +11,14 @@ key sequences.
 import os
 import displayio
 import terminalio
+import usb_hid
 from adafruit_display_shapes.rect import Rect
 from adafruit_display_text import label
 from adafruit_macropad import MacroPad
+from adafruit_hid.consumer_control import ConsumerControl
+from adafruit_hid.consumer_control_code import ConsumerControlCode
+
+CC = ConsumerControl(usb_hid.devices)
 
 
 # CONFIGURABLES ------------------------
@@ -22,10 +27,12 @@ MACRO_FOLDER = '/macros'
 
 # CLASSES AND FUNCTIONS ----------------
 
+
 class App:
     """ Class representing a host-side application, for which we have a set
         of macro sequences. Project code was originally more complex and
         this was helpful, but maybe it's excessive now?"""
+
     def __init__(self, appdata):
         self.name = appdata['name']
         self.macros = appdata['macros']
@@ -33,9 +40,9 @@ class App:
     def switch(self):
         """ Activate application settings; update OLED labels and LED
             colors. """
-        GROUP[13].text = self.name   # Application name
+        GROUP[13].text = self.name
         for i in range(12):
-            if i < len(self.macros): # Key in use, set label + LED color
+            if i < len(self.macros):  # Key in use, set label + LED color
                 MACROPAD.pixels[i] = self.macros[i][0]
                 GROUP[i].text = self.macros[i][1]
             else:  # Key not in use, no label or LED
@@ -87,7 +94,7 @@ if not APPS:
     while True:
         pass
 
-LAST_POSITION = None
+LAST_POSITION = 0
 LAST_ENCODER_SWITCH = MACROPAD.encoder_switch_debounced.pressed
 APP_INDEX = 0
 APPS[APP_INDEX].switch()
@@ -99,9 +106,12 @@ while True:
     # Read encoder position. If it's changed, switch apps.
     POSITION = MACROPAD.encoder
     if POSITION != LAST_POSITION:
-        APP_INDEX = POSITION % len(APPS)
-        APPS[APP_INDEX].switch()
+        volume_btn = ConsumerControlCode.VOLUME_INCREMENT
+        if POSITION < LAST_POSITION:
+            volume_btn = ConsumerControlCode.VOLUME_DECREMENT
+        CC.send(volume_btn)
         LAST_POSITION = POSITION
+        continue
 
     # Handle encoder button. If state has changed, and if there's a
     # corresponding macro, set up variables to act on this just like
@@ -110,14 +120,13 @@ while True:
     ENCODER_SWITCH = MACROPAD.encoder_switch_debounced.pressed
     if ENCODER_SWITCH != LAST_ENCODER_SWITCH:
         LAST_ENCODER_SWITCH = ENCODER_SWITCH
-        if len(APPS[APP_INDEX].macros) < 13:
-            continue    # No 13th macro, just resume main loop
-        KEY_NUMBER = 12 # else process below as 13th macro
-        PRESSED = ENCODER_SWITCH
+        APP_INDEX = (APP_INDEX + 1) % len(APPS)
+        APPS[APP_INDEX].switch()
+        continue
     else:
         EVENT = MACROPAD.keys.events.get()
         if not EVENT or EVENT.key_number >= len(APPS[APP_INDEX].macros):
-            continue # No key events, or no corresponding macro, resume loop
+            continue  # No key events, or no corresponding macro, resume loop
         KEY_NUMBER = EVENT.key_number
         PRESSED = EVENT.pressed
 
@@ -127,7 +136,7 @@ while True:
 
     SEQUENCE = APPS[APP_INDEX].macros[KEY_NUMBER][2]
     if PRESSED:
-        if KEY_NUMBER < 12: # No pixel for encoder button
+        if KEY_NUMBER < 12:  # No pixel for encoder button
             MACROPAD.pixels[KEY_NUMBER] = 0xFFFFFF
             MACROPAD.pixels.show()
         for item in SEQUENCE:
@@ -143,6 +152,6 @@ while True:
         for item in SEQUENCE:
             if isinstance(item, int) and item >= 0:
                 MACROPAD.keyboard.release(item)
-        if KEY_NUMBER < 12: # No pixel for encoder button
+        if KEY_NUMBER < 12:  # No pixel for encoder button
             MACROPAD.pixels[KEY_NUMBER] = APPS[APP_INDEX].macros[KEY_NUMBER][0]
             MACROPAD.pixels.show()
